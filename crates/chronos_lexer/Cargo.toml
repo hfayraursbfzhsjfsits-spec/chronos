@@ -1,0 +1,9 @@
+[package]
+name = "chronos_lexer"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+logos.workspace = true
+thiserror.workspace = true
+codespan-reporting.workspace = true

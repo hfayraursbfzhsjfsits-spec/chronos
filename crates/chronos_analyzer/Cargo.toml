@@ -1,0 +1,9 @@
+[package]
+name = "chronos_analyzer"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+chronos_lexer = { path = "../chronos_lexer" }
+chronos_parser = { path = "../chronos_parser" }
+thiserror.workspace = true

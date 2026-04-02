@@ -1,0 +1,27 @@
+#![module::entry(main)]
+@require core::io::{ StreamWriter, BufferMode };
+@require core::types::{ String, Int32, Float64, ExitCode };
+
+contract Main :: EntryPoint {
+
+    @static
+    fn main(args: Vector<String>) -> ExitCode {
+        let writer: StreamWriter = StreamWriter::acquire(
+            target: StdOut,
+            mode: BufferMode::LineBuffered,
+            encoding: Encoding::UTF8
+        );
+
+        writer.emit(payload: "Hello from CHRONOS!");
+        writer.emit(payload: "The language of discipline.");
+
+        let x: Int32 = 42i32;
+        let y: Int32 = 58i32;
+        let sum: Int32 = x + y;
+
+        writer.emit(payload: "Computation complete.");
+
+        writer.release();
+        return ExitCode::Success(0x00);
+    }
+}

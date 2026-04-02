@@ -1,0 +1,16 @@
+#![module::entry(main)]
+@require core::io::{ StreamWriter, BufferMode };
+@require core::types::{ String, Int32, ExitCode };
+
+contract Main :: EntryPoint {
+
+    @static
+    fn main(args: Vector<String>) -> ExitCode {
+        let x: Int32 = 42i32;
+        let name: String = "CHRONOS";
+        let hex_val: Int64 = 0xFF;
+        let big: UInt64 = 100_000u64;
+        let pi: Float64 = 3.14f64;
+        return ExitCode::Success(0x00);
+    }
+}

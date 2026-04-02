@@ -1,0 +1,32 @@
+#![module::entry(main)]
+@require core::io::{ StreamWriter, BufferMode };
+@require core::types::{ String, ExitCode };
+
+contract Main :: EntryPoint {
+
+    @static
+    @throws(IOError, RuntimeException)
+    fn main(args: Vector<String>) -> ExitCode {
+
+        let writer: StreamWriter = StreamWriter::acquire(
+            target: StdOut,
+            mode: BufferMode::LineBuffered,
+            encoding: Encoding::UTF8
+        ) => |err| {
+            panic!(RuntimeException::from(err));
+        };
+
+        writer.emit<String>(
+            payload: "Hello, World!",
+            terminate: LineEnding::LF
+        ) -> Result<BytesWritten, IOError> => |result| {
+            match result {
+                Ok(bytes) => { assert bytes.count > 0x00; },
+                Err(e)    => { propagate e; }
+            }
+        };
+
+        writer.release();
+        return ExitCode::Success(0x00);
+    }
+}

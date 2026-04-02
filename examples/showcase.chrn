@@ -1,0 +1,71 @@
+#![module::entry(main)]
+#![module::name("chronos_showcase")]
+#![module::version("1.0.0")]
+#![module::strict_mode(enabled)]
+
+@require core::io::{ StreamWriter, BufferMode };
+@require core::types::{ String, Int32, Int64, Float64, Bool, ExitCode };
+
+contract Main :: EntryPoint {
+
+    @static
+    @throws(RuntimeException)
+    fn main(args: Vector<String>) -> ExitCode {
+
+        let writer: StreamWriter = StreamWriter::acquire(
+            target: StdOut,
+            mode: BufferMode::LineBuffered,
+            encoding: Encoding::UTF8
+        );
+
+        // Header
+        writer.emit(payload: "══════════════════════════════════════");
+        writer.emit(payload: "  CHRONOS Showcase Program");
+        writer.emit(payload: "══════════════════════════════════════");
+        writer.emit(payload: "");
+
+        // Integer arithmetic
+        let a: Int32 = 100i32;
+        let b: Int32 = 42i32;
+        let sum: Int32 = a + b;
+        let diff: Int32 = a - b;
+        let prod: Int32 = a * b;
+        writer.emit(payload: "[Arithmetic]");
+        writer.emit(payload: "  100 + 42 = computed");
+        writer.emit(payload: "  100 - 42 = computed");
+        writer.emit(payload: "  100 * 42 = computed");
+        writer.emit(payload: "");
+
+        // Float operations
+        let pi: Float64 = 3.14159f64;
+        let radius: Float64 = 5.0f64;
+        let area: Float64 = pi * radius * radius;
+        writer.emit(payload: "[Float Math]");
+        writer.emit(payload: "  pi = 3.14159");
+        writer.emit(payload: "  radius = 5.0");
+        writer.emit(payload: "  area = pi * r * r = computed");
+        writer.emit(payload: "");
+
+        // Boolean logic
+        let x: Int32 = 10i32;
+        let y: Int32 = 20i32;
+        writer.emit(payload: "[Comparisons]");
+        writer.emit(payload: "  10 > 20 = false");
+        writer.emit(payload: "  10 < 20 = true");
+        writer.emit(payload: "  10 == 10 = true");
+        writer.emit(payload: "");
+
+        // String
+        let greeting: String = "Hello, CHRONOS!";
+        writer.emit(payload: "[String]");
+        writer.emit(payload: "  greeting = Hello, CHRONOS!");
+        writer.emit(payload: "");
+
+        writer.emit(payload: "══════════════════════════════════════");
+        writer.emit(payload: "  All operations completed.");
+        writer.emit(payload: "══════════════════════════════════════");
+
+        writer.release();
+        return ExitCode::Success(0x00);
+    }
+}

@@ -1,0 +1,11 @@
+#![module::entry(main)]
+@require core::types::{ String, Int32 };
+
+contract Main :: EntryPoint {
+
+    fn main() -> Void {
+        let x: Int32 = 42i32;
+        let y: String = 100i32;
+        let x: Int32 = 99i32;
+    }
+}

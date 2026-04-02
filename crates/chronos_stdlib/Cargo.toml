@@ -1,0 +1,8 @@
+[package]
+name = "chronos_stdlib"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+chronos_vm = { path = "../chronos_vm" }
+thiserror.workspace = true

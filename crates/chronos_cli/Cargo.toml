@@ -1,0 +1,14 @@
+[package]
+name = "chronos_cli"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+chronos_lexer = { path = "../chronos_lexer" }
+chronos_parser = { path = "../chronos_parser" }
+chronos_analyzer = { path = "../chronos_analyzer" }
+chronos_vm = { path = "../chronos_vm" }
+chronos_stdlib = { path = "../chronos_stdlib" }
+clap.workspace = true
+colored.workspace = true
+rustyline.workspace = true
