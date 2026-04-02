@@ -20,6 +20,7 @@ struct CallFrame {
 #[derive(Debug, Clone)]
 struct Variable {
     value: Value,
+    mutable: bool,
 }
 
 impl VM {
@@ -104,14 +105,14 @@ impl VM {
             }
 
             OpCode::Store(name) => {
-                let val = self.safe_pop();
-                self.store_variable(name, val);
-            }
+    let val = self.safe_pop();
+    self.assign_or_define(name, val, false)?;
+}
 
-            OpCode::StoreMut(name) => {
-                let val = self.safe_pop();
-                self.store_variable(name, val);
-            }
+OpCode::StoreMut(name) => {
+    let val = self.safe_pop();
+    self.assign_or_define(name, val, true)?;
+}
 
             OpCode::Add => {
                 let right = self.safe_pop();
@@ -242,7 +243,13 @@ impl VM {
                     let mut locals = HashMap::new();
 
                     for (param_name, arg_value) in chunk.params.iter().cloned().zip(args.into_iter()) {
-                        locals.insert(param_name, Variable { value: arg_value });
+                        locals.insert(
+    param_name,
+    Variable {
+        value: arg_value,
+        mutable: false,
+    },
+);
                     }
 
                     self.call_stack.push(CallFrame {
@@ -486,13 +493,41 @@ impl VM {
         Value::Path(vec![name.to_string()])
     }
 
-    fn store_variable(&mut self, name: String, value: Value) {
-        if let Some(frame) = self.call_stack.last_mut() {
-            frame.locals.insert(name, Variable { value });
-        } else {
-            self.globals.insert(name, value);
+    fn assign_or_define(
+    &mut self,
+    name: String,
+    value: Value,
+    declare_mutable: bool,
+) -> Result<(), VMError> {
+    // Önce mevcut local scope'ta var mı?
+    if let Some(frame) = self.call_stack.last_mut() {
+        if let Some(existing) = frame.locals.get_mut(&name) {
+            if !existing.mutable {
+                return Err(VMError::ImmutableVariable { name });
+            }
+            existing.value = value;
+            return Ok(());
         }
+
+        frame.locals.insert(
+            name,
+            Variable {
+                value,
+                mutable: declare_mutable,
+            },
+        );
+        return Ok(());
     }
+
+    // Global scope
+    if self.globals.contains_key(&name) {
+        self.globals.insert(name, value);
+    } else {
+        self.globals.insert(name, value);
+    }
+
+    Ok(())
+}
 
     fn arithmetic(&self, left: &Value, right: &Value, op: &str) -> Value {
         if let (Value::Int32(l), Value::Int32(r)) = (left, right) {

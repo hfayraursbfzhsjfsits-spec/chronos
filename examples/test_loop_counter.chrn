@@ -1,0 +1,31 @@
+#![module::entry(main)]
+@require core::types::{ Int32, ExitCode, String };
+@require core::io::{ StreamWriter, BufferMode };
+
+fn countdown() -> Int32 {
+    let mut x: Int32 = 5i32;
+
+    while (condition: x > 0i32) => {
+        x = x - 1i32;
+    };
+
+    return x;
+}
+
+contract Main :: EntryPoint {
+
+    @static
+    fn main(args: Vector<String>) -> ExitCode {
+        let writer: StreamWriter = StreamWriter::acquire(
+            target: StdOut,
+            mode: BufferMode::LineBuffered,
+            encoding: Encoding::UTF8
+        );
+
+        writer.emit(payload: "MUTABLE LOOP TEST");
+        writer.emit(payload: countdown());
+
+        writer.release();
+        return ExitCode::Success(0x00);
+    }
+}
