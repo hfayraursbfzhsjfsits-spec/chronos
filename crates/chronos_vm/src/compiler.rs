@@ -258,7 +258,6 @@ let mut chunk = Chunk::with_params(qualified_name, params);
             }
 
             Expr::PathExpr { segments, span } => {
-                // Path'i fonksiyon çağrısı gibi değerlendirme — sadece değer olarak push
                 chunk.emit(OpCode::PushConst(Value::Path(segments.clone())), span.line);
             }
 
@@ -296,8 +295,6 @@ let mut chunk = Chunk::with_params(qualified_name, params);
                 // 1. Object'i stack'e koy
                 self.compile_expr(object, chunk);
 
-                // 2. Sadece argümanların VALUE'larını stack'e koy
-                //    (named arg label'ları ATLA)
                 for arg in args {
                     self.compile_expr(&arg.value, chunk);
                 }
@@ -312,7 +309,6 @@ let mut chunk = Chunk::with_params(qualified_name, params);
                     _ => "unknown".to_string(),
                 };
 
-                // Sadece argümanların VALUE'larını stack'e koy
                 for arg in args {
                     self.compile_expr(&arg.value, chunk);
                 }

@@ -499,7 +499,6 @@ OpCode::StoreMut(name) => {
     value: Value,
     declare_mutable: bool,
 ) -> Result<(), VMError> {
-    // Önce mevcut local scope'ta var mı?
     if let Some(frame) = self.call_stack.last_mut() {
         if let Some(existing) = frame.locals.get_mut(&name) {
             if !existing.mutable {

@@ -33,7 +33,6 @@ impl Analyzer {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  Pass 1: Declaration'ları Kaydet
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     fn register_declarations(&mut self, program: &Program) {
@@ -372,7 +371,6 @@ impl Analyzer {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  Expression Kontrolü
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     fn check_expr(&mut self, expr: &Expr) {
@@ -468,7 +466,6 @@ impl Analyzer {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  Tip Çıkarımı
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     fn infer_expr_type(&self, expr: &Expr) -> ChronosType {
@@ -717,7 +714,6 @@ impl Analyzer {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  Yardımcı Kontroller
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     fn is_inside_loop(&self) -> bool {
@@ -994,7 +990,7 @@ mod tests {
         let result = analyze_source(r#"
             contract Main :: EntryPoint {
                 fn main() -> Void {
-                    let x: Int32 = 10i32
+                    let x: Int32 = 10i32;
                     while (condition: x > 0i32) => {
                         break;
                     };

@@ -107,7 +107,6 @@ pub enum SemanticError {
         span: Span,
     },
 
-    // ── Warnings (error olarak değil, ayrı tutulabilir) ──
     #[error("[W0001] Unused variable '{name}' at line {line} — prefix with '_' to suppress")]
     UnusedVariable {
         name: String,

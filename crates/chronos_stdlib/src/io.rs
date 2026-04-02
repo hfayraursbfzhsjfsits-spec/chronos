@@ -3,7 +3,6 @@ use chronos_vm::Value;
 pub struct ChronosIO;
 
 impl ChronosIO {
-    /// writer.emit() — değeri string'e çevirip döndürür
     pub fn emit(args: &[Value]) -> Value {
         let mut parts: Vec<String> = Vec::new();
         for arg in args {
@@ -25,7 +24,6 @@ impl ChronosIO {
         Value::StringVal(result)
     }
 
-    /// Herhangi bir Value'yu okunabilir string'e çevir
     pub fn value_to_string(val: &Value) -> String {
         match val {
             Value::Int8(n)      => format!("{}", n),
@@ -54,7 +52,6 @@ impl ChronosIO {
         }
     }
 
-    /// Tip bilgisini string olarak döndür
     pub fn type_of(val: &Value) -> Value {
         Value::StringVal(val.type_name().to_string())
     }

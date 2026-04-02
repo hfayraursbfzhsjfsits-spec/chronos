@@ -1,7 +1,6 @@
 use std::fmt;
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Value — VM'deki runtime değerler
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 #[derive(Debug, Clone, PartialEq)]
@@ -20,7 +19,6 @@ pub enum Value {
     Char(char),
     StringVal(String),
     Void,
-    /// Path değeri — ExitCode::Success gibi
     Path(Vec<String>),
     /// Struct instance
     Struct {
@@ -119,21 +117,16 @@ impl fmt::Display for Value {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  OpCode — bytecode komutları
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum OpCode {
-    /// Sabit değeri stack'e koy
     PushConst(Value),
 
-    /// Değişkeni stack'e yükle
     Load(String),
 
-    /// Stack'ten değeri değişkene kaydet
     Store(String),
 
-    /// Mutable değişken tanımla
     StoreMut(String),
 
     // ── Aritmetik ──
@@ -144,7 +137,6 @@ pub enum OpCode {
     Mod,
     Negate,
 
-    // ── Karşılaştırma ──
     Equal,
     NotEqual,
     LessThan,
@@ -152,27 +144,18 @@ pub enum OpCode {
     GreaterThan,
     GreaterEqual,
 
-    // ── Mantıksal ──
     Not,
     And,
     Or,
 
-    // ── Kontrol Akışı ──
-    /// Koşulsuz jump
     Jump(usize),
-    /// Koşullu jump — stack'teki değer false ise atla
     JumpIfFalse(usize),
-    /// Koşullu jump — stack'teki değer true ise atla
     JumpIfTrue(usize),
 
     // ── Fonksiyon ──
-    /// Built-in fonksiyon çağır (isim, argüman sayısı)
     CallBuiltin(String, usize),
-    /// Kullanıcı fonksiyon çağır (isim, argüman sayısı)
     Call(String, usize),
-    /// Method çağır (method_name, arg_count)
     CallMethod(String, usize),
-    /// Fonksiyondan dön
     Return,
 
     // ── Stack ──
@@ -182,22 +165,16 @@ pub enum OpCode {
     Dup,
 
     // ── Struct ──
-    /// Struct oluştur (type_name, field_count)
     MakeStruct(String, usize),
-    /// Field'a eriş
     GetField(String),
     /// Field'a ata
     SetField(String),
 
-    // ── Özel ──
-    /// Programı durdur
     Halt,
-    /// Hiçbir şey yapma
     Nop,
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Chunk — bytecode komutları listesi
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 #[derive(Debug, Clone)]
@@ -262,7 +239,6 @@ impl Chunk {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  CompiledProgram — tüm fonksiyonların bytecode'u
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 #[derive(Debug, Clone)]

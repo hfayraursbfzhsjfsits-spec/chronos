@@ -415,7 +415,6 @@ impl Lexer {
             self.advance();
         }
 
-        // ── Ondalık nokta kontrolü ──
         let mut is_float = false;
         if !self.is_at_end()
             && self.peek() == '.'
@@ -434,7 +433,6 @@ impl Lexer {
             .filter(|c| **c != '_')
             .collect();
 
-        // ── Suffix kontrolü (i32, u64, f32, etc.) ──
         if !self.is_at_end() && (self.peek() == 'i' || self.peek() == 'u' || self.peek() == 'f') {
             let suffix_start = self.current;
             self.advance();
@@ -562,7 +560,6 @@ impl Lexer {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  Yardımcı Fonksiyonlar
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     fn advance(&mut self) -> char {

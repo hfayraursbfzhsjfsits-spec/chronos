@@ -3,7 +3,6 @@ use chronos_vm::Value;
 pub struct ChronosMath;
 
 impl ChronosMath {
-    /// Checked add — overflow kontrolü
     pub fn checked_add(left: &Value, right: &Value) -> Value {
         match (left, right) {
             (Value::Int32(a), Value::Int32(b)) => {

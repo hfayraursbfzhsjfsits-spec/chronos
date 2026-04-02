@@ -29,7 +29,6 @@ pub fn start_repl() {
             continue;
         }
 
-        // REPL komutları
         if input.starts_with(':') {
             match input.as_str() {
                 ":quit" | ":q" | ":exit" => {
@@ -78,7 +77,6 @@ pub fn start_repl() {
             }
         }
 
-        // CHRONOS kodu çalıştır
         history.push(input.clone());
         execute_repl_input(&input, line_num);
         line_num += 1;
@@ -137,7 +135,6 @@ fn execute_repl_input(input: &str, _line_num: usize) {
     let mut vm = VM::new();
     match vm.run(&compiled) {
         Ok(_val) => {
-            // Output varsa göster
             let output = vm.get_output();
             for line in output {
                 println!("  {}", line);

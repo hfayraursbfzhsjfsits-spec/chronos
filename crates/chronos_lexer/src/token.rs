@@ -85,7 +85,6 @@ impl Token {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  TokenKind — tüm token tipleri
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 #[derive(Debug, Clone, PartialEq)]
@@ -209,7 +208,6 @@ impl TokenKind {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Keyword Lookup — identifier → keyword dönüşümü
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 pub fn lookup_keyword(ident: &str) -> Option<TokenKind> {

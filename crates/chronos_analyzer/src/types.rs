@@ -63,13 +63,10 @@ pub enum ChronosType {
     /// User-defined enum type
     Enum(String),
 
-    /// Self keyword — contract içinde
     SelfType,
 
-    /// Henüz çözümlenmemiş tip
     Unresolved(String),
 
-    /// Hata durumunda kullanılan placeholder
     Error,
 }
 
@@ -116,26 +113,21 @@ impl ChronosType {
         matches!(self, ChronosType::Float32 | ChronosType::Float64)
     }
 
-    /// İki tip uyumlu mu?
     pub fn is_assignable_from(&self, other: &ChronosType) -> bool {
-        // Error tipi her şeyle uyumlu (hata zaten raporlandı)
         if matches!(self, ChronosType::Error) || matches!(other, ChronosType::Error) {
             return true;
         }
 
-        // Birebir aynı tip
         if self == other {
             return true;
         }
 
-        // Unresolved tip — henüz çözümlenmemiş, kabul et
         if matches!(self, ChronosType::Unresolved(_))
             || matches!(other, ChronosType::Unresolved(_))
         {
             return true;
         }
 
-        // Contract tipi — isim eşleşmesi
         match (self, other) {
             (ChronosType::Contract(a), ChronosType::Contract(b)) => a == b,
             (ChronosType::Enum(a), ChronosType::Enum(b)) => a == b,
@@ -154,7 +146,6 @@ impl ChronosType {
         }
     }
 
-    /// String'den tipe dönüştür
     pub fn from_name(name: &str) -> ChronosType {
         match name {
             "Int8"    => ChronosType::Int8,
