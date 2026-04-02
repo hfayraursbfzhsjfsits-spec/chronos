@@ -20,6 +20,7 @@ and discipline is enforced by design.
 [Contributing](#contributing)
 
 ---
+firstly, it contains pretty much turkish texts inside.
 
 </div>
 
