@@ -1,0 +1,64 @@
+#![module::entry(main)]
+@require core::types::{ Int32, Bool, ExitCode, String };
+@require core::io::{ StreamWriter, BufferMode };
+
+fn classify(n: Int32) -> Int32 {
+    if (condition: n > 0i32) => {
+        return 1i32;
+    } else if (condition: n == 0i32) => {
+        return 0i32;
+    } else => {
+        return -1i32;
+    };
+}
+
+fn guard_test(n: Int32) -> Int32 {
+    guard n > 10i32 else {
+        return 999i32;
+    };
+
+    return n;
+}
+
+fn match_test(n: Int32) -> Int32 {
+    match (value: n) => {
+        case(1i32) => {
+            return 11i32;
+        },
+        case(2i32) => {
+            return 22i32;
+        },
+        default => {
+            return 99i32;
+        }
+    };
+}
+
+contract Main :: EntryPoint {
+
+    @static
+    fn main(args: Vector<String>) -> ExitCode {
+        let writer: StreamWriter = StreamWriter::acquire(
+            target: StdOut,
+            mode: BufferMode::LineBuffered,
+            encoding: Encoding::UTF8
+        );
+
+        writer.emit(payload: "IF TESTS");
+        writer.emit(payload: classify(10i32));
+        writer.emit(payload: classify(0i32));
+        writer.emit(payload: classify(-5i32));
+
+        writer.emit(payload: "GUARD TESTS");
+        writer.emit(payload: guard_test(5i32));
+        writer.emit(payload: guard_test(20i32));
+
+        writer.emit(payload: "MATCH TESTS");
+        writer.emit(payload: match_test(1i32));
+        writer.emit(payload: match_test(2i32));
+        writer.emit(payload: match_test(7i32));
+
+        writer.release();
+        return ExitCode::Success(0x00);
+    }
+}

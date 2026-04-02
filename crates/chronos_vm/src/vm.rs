@@ -1,7 +1,6 @@
 use crate::bytecode::*;
 use crate::errors::VMError;
 use std::collections::HashMap;
-use std::io::Write;
 
 pub struct VM {
     stack: Vec<Value>,
@@ -50,15 +49,7 @@ impl VM {
             locals: HashMap::new(),
         });
 
-        let result = self.execute_loop(program)?;
-
-        let stdout = std::io::stdout();
-        let mut handle = stdout.lock();
-        for line in &self.output {
-            let _ = writeln!(handle, "{}", line);
-        }
-
-        Ok(result)
+        self.execute_loop(program)
     }
 
     fn execute_loop(&mut self, program: &CompiledProgram) -> Result<Value, VMError> {
@@ -94,7 +85,11 @@ impl VM {
             self.execute_op(op, program)?;
         }
 
-        Ok(Value::Void)
+        if !self.stack.is_empty() {
+            Ok(self.safe_pop())
+        } else {
+            Ok(Value::Void)
+        }
     }
 
     fn execute_op(&mut self, op: OpCode, program: &CompiledProgram) -> Result<(), VMError> {
@@ -243,18 +238,19 @@ impl VM {
                 if self.is_builtin(&name) {
                     let result = self.exec_builtin(&name, args);
                     self.stack.push(result);
-                } else if program.find_chunk(&name).is_some() {
+                } else if let Some(chunk) = program.find_chunk(&name) {
                     let mut locals = HashMap::new();
-                    for (i, arg) in args.into_iter().enumerate() {
-                        locals.insert(format!("__arg{}", i), Variable { value: arg });
+
+                    for (param_name, arg_value) in chunk.params.iter().cloned().zip(args.into_iter()) {
+                        locals.insert(param_name, Variable { value: arg_value });
                     }
+
                     self.call_stack.push(CallFrame {
                         chunk_name: name,
                         ip: 0,
                         locals,
                     });
                 } else {
-                    // Bilinmeyen fn — Void döndür
                     self.stack.push(Value::Void);
                 }
             }
@@ -300,6 +296,7 @@ impl VM {
                     .enumerate()
                     .map(|(i, v)| (format!("field_{}", i), v))
                     .collect();
+
                 self.stack.push(Value::Struct {
                     type_name: name,
                     fields,
@@ -344,10 +341,6 @@ impl VM {
 
         Ok(())
     }
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  Built-in Functions
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     fn is_builtin(&self, name: &str) -> bool {
         name.contains("::")
@@ -400,7 +393,6 @@ impl VM {
     fn exec_method(&mut self, _object: &Value, method: &str, args: Vec<Value>) -> Value {
         match method {
             "emit" => {
-                // writer.emit(payload: "text") → stdout'a yaz
                 for arg in &args {
                     let text = match arg {
                         Value::StringVal(s) => s.clone(),
@@ -419,9 +411,13 @@ impl VM {
             }
 
             "release" => Value::Void,
+
             "clone" => args.into_iter().next().unwrap_or(Value::Void),
+
             "length" | "len" => Value::UInt64(0),
+
             "push" => Value::Void,
+
             "get" => Value::Int64(0),
 
             "from" => {
@@ -449,20 +445,24 @@ impl VM {
                 }
             }
 
+            "Success" => {
+                let code = args.first().and_then(|v| v.to_i64()).unwrap_or(0);
+                Value::Path(vec!["ExitCode".to_string(), format!("Success({})", code)])
+            }
+
+            "Failure" => {
+                let code = args.first().and_then(|v| v.to_i64()).unwrap_or(1);
+                Value::Path(vec!["ExitCode".to_string(), format!("Failure({})", code)])
+            }
+
             _ => Value::Void,
         }
     }
 
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  Helpers
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-    /// Stack'ten pop — boşsa Void döndür (crash etmez)
     fn safe_pop(&mut self) -> Value {
         self.stack.pop().unwrap_or(Value::Void)
     }
 
-    /// Stack'ten N eleman pop et
     fn pop_n(&mut self, n: usize) -> Vec<Value> {
         let mut result = Vec::with_capacity(n);
         for _ in 0..n {
@@ -473,19 +473,16 @@ impl VM {
     }
 
     fn load_variable(&self, name: &str) -> Value {
-        // Locals'da ara
         for frame in self.call_stack.iter().rev() {
             if let Some(var) = frame.locals.get(name) {
                 return var.value.clone();
             }
         }
 
-        // Globals'da ara
         if let Some(val) = self.globals.get(name) {
             return val.clone();
         }
 
-        // Bilinmeyen isim — Path olarak döndür (StdOut, Encoding, vs.)
         Value::Path(vec![name.to_string()])
     }
 
@@ -498,31 +495,36 @@ impl VM {
     }
 
     fn arithmetic(&self, left: &Value, right: &Value, op: &str) -> Value {
-        // Int32 + Int32
         if let (Value::Int32(l), Value::Int32(r)) = (left, right) {
             return match op {
                 "add" => Value::Int32(l.wrapping_add(*r)),
                 "sub" => Value::Int32(l.wrapping_sub(*r)),
                 "mul" => Value::Int32(l.wrapping_mul(*r)),
-                "div" => if *r != 0 { Value::Int32(l / r) } else { Value::Int32(0) },
-                "mod" => if *r != 0 { Value::Int32(l % r) } else { Value::Int32(0) },
+                "div" => {
+                    if *r != 0 { Value::Int32(l / r) } else { Value::Int32(0) }
+                }
+                "mod" => {
+                    if *r != 0 { Value::Int32(l % r) } else { Value::Int32(0) }
+                }
                 _ => Value::Int32(0),
             };
         }
 
-        // i64
         if let (Some(l), Some(r)) = (left.to_i64(), right.to_i64()) {
             return match op {
                 "add" => Value::Int64(l.wrapping_add(r)),
                 "sub" => Value::Int64(l.wrapping_sub(r)),
                 "mul" => Value::Int64(l.wrapping_mul(r)),
-                "div" => if r != 0 { Value::Int64(l / r) } else { Value::Int64(0) },
-                "mod" => if r != 0 { Value::Int64(l % r) } else { Value::Int64(0) },
+                "div" => {
+                    if r != 0 { Value::Int64(l / r) } else { Value::Int64(0) }
+                }
+                "mod" => {
+                    if r != 0 { Value::Int64(l % r) } else { Value::Int64(0) }
+                }
                 _ => Value::Int64(0),
             };
         }
 
-        // f64
         if let (Some(l), Some(r)) = (left.to_f64(), right.to_f64()) {
             return match op {
                 "add" => Value::Float64(l + r),
@@ -534,7 +536,6 @@ impl VM {
             };
         }
 
-        // String concat
         if let (Value::StringVal(l), Value::StringVal(r)) = (left, right) {
             if op == "add" {
                 return Value::StringVal(format!("{}{}", l, r));
@@ -554,6 +555,7 @@ impl VM {
                 _ => false,
             };
         }
+
         false
     }
 

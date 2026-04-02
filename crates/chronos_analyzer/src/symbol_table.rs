@@ -1,10 +1,6 @@
 use crate::types::ChronosType;
 use std::collections::HashMap;
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Symbol — bir değişken/fonksiyon/contract bilgisi
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 #[derive(Debug, Clone)]
 pub struct Symbol {
     pub name: String,
@@ -28,10 +24,6 @@ pub enum SymbolKind {
     Enumeration,
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Function Signature — fonksiyon bilgileri
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 #[derive(Debug, Clone)]
 pub struct FunctionSignature {
     pub name: String,
@@ -40,10 +32,6 @@ pub struct FunctionSignature {
     pub annotations: Vec<String>,
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Contract Info — contract bilgileri
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 #[derive(Debug, Clone)]
 pub struct ContractInfo {
     pub name: String,
@@ -51,10 +39,6 @@ pub struct ContractInfo {
     pub fields: Vec<(String, ChronosType)>,
     pub methods: Vec<FunctionSignature>,
 }
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Scope — tek bir kapsam seviyesi
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 #[derive(Debug, Clone)]
 pub struct Scope {
@@ -92,10 +76,6 @@ impl Scope {
     }
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  SymbolTable — tüm scope'ları yöneten yapı
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 #[derive(Debug)]
 pub struct SymbolTable {
     scopes: Vec<Scope>,
@@ -113,21 +93,18 @@ impl SymbolTable {
         }
     }
 
-    /// Yeni scope aç
     pub fn push_scope(&mut self, scope_type: ScopeType) {
         self.scopes.push(Scope::new(scope_type));
     }
 
-    /// Scope kapat
     pub fn pop_scope(&mut self) -> Option<Scope> {
         if self.scopes.len() > 1 {
             self.scopes.pop()
         } else {
-            None // Global scope kapatılamaz
+            None
         }
     }
 
-    /// Mevcut scope'a sembol ekle
     pub fn define(&mut self, symbol: Symbol) -> Option<Symbol> {
         if let Some(scope) = self.scopes.last_mut() {
             scope.define(symbol)
@@ -136,7 +113,6 @@ impl SymbolTable {
         }
     }
 
-    /// Tüm scope'larda sembol ara (en içten dışa)
     pub fn lookup(&self, name: &str) -> Option<&Symbol> {
         for scope in self.scopes.iter().rev() {
             if let Some(sym) = scope.lookup(name) {
@@ -146,12 +122,10 @@ impl SymbolTable {
         None
     }
 
-    /// Sadece mevcut scope'ta ara
     pub fn lookup_current_scope(&self, name: &str) -> Option<&Symbol> {
         self.scopes.last()?.lookup(name)
     }
 
-    /// Sembolü kullanıldı olarak işaretle
     pub fn mark_used(&mut self, name: &str) {
         for scope in self.scopes.iter_mut().rev() {
             if let Some(sym) = scope.lookup_mut(name) {
@@ -161,12 +135,10 @@ impl SymbolTable {
         }
     }
 
-    /// Mevcut scope tipini döndür
     pub fn current_scope_type(&self) -> &ScopeType {
         &self.scopes.last().unwrap().scope_type
     }
 
-    /// İçinde olduğumuz fonksiyonun adını bul
     pub fn enclosing_function(&self) -> Option<&str> {
         for scope in self.scopes.iter().rev() {
             if let ScopeType::Function(name) = &scope.scope_type {
@@ -176,7 +148,6 @@ impl SymbolTable {
         None
     }
 
-    /// İçinde olduğumuz contract'ın adını bul
     pub fn enclosing_contract(&self) -> Option<&str> {
         for scope in self.scopes.iter().rev() {
             if let ScopeType::Contract(name) = &scope.scope_type {
@@ -186,22 +157,18 @@ impl SymbolTable {
         None
     }
 
-    /// Contract bilgisi ekle
     pub fn register_contract(&mut self, info: ContractInfo) {
         self.contracts.insert(info.name.clone(), info);
     }
 
-    /// Contract bilgisi al
     pub fn get_contract(&self, name: &str) -> Option<&ContractInfo> {
         self.contracts.get(name)
     }
 
-    /// Function bilgisi ekle
     pub fn register_function(&mut self, sig: FunctionSignature) {
         self.functions.insert(sig.name.clone(), sig);
     }
 
-    /// Kullanılmayan değişkenleri bul
     pub fn find_unused_symbols(&self) -> Vec<&Symbol> {
         let mut unused = Vec::new();
         for scope in &self.scopes {
@@ -217,8 +184,16 @@ impl SymbolTable {
         unused
     }
 
-    /// Mevcut scope derinliği
     pub fn depth(&self) -> usize {
         self.scopes.len()
+    }
+
+    pub fn is_inside_loop(&self) -> bool {
+        for scope in self.scopes.iter().rev() {
+            if matches!(scope.scope_type, ScopeType::Loop) {
+                return true;
+            }
+        }
+        false
     }
 }

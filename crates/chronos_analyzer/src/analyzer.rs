@@ -3,10 +3,6 @@ use crate::types::ChronosType;
 use crate::symbol_table::*;
 use crate::errors::SemanticError;
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Semantic Analyzer
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 pub struct Analyzer {
     pub symbol_table: SymbolTable,
     pub errors: Vec<SemanticError>,
@@ -23,10 +19,8 @@ impl Analyzer {
     }
 
     pub fn analyze(mut self, program: &Program) -> AnalysisResult {
-        // Pass 1: Tüm contract ve top-level fn'leri kaydet
         self.register_declarations(program);
 
-        // Pass 2: Her declaration'ı detaylı kontrol et
         for decl in &program.declarations {
             self.analyze_declaration(decl);
         }
@@ -70,7 +64,6 @@ impl Analyzer {
                     };
                     self.symbol_table.register_contract(info);
 
-                    // Global scope'a contract sembolü ekle
                     self.symbol_table.define(Symbol {
                         name: c.name.clone(),
                         symbol_type: ChronosType::Contract(c.name.clone()),
@@ -149,12 +142,9 @@ impl Analyzer {
                 self.register_params(&f.params);
                 self.analyze_block(&f.body);
                 self.check_return(&f.name, &f.return_type, &f.body, f.span);
-                self.check_unused_in_scope();
                 self.symbol_table.pop_scope();
             }
-            Declaration::Enumeration(_) => {
-                // Enum variant'ları şimdilik kayıt dışı
-            }
+            Declaration::Enumeration(_) => {}
         }
     }
 
@@ -162,7 +152,6 @@ impl Analyzer {
         self.symbol_table
             .push_scope(ScopeType::Contract(contract.name.clone()));
 
-        // Field'ları scope'a ekle
         for member in &contract.members {
             if let ContractMember::Field(f) = member {
                 let ty = self.resolve_type(&f.type_expr);
@@ -179,24 +168,22 @@ impl Analyzer {
             }
         }
 
-        // Method'ları analiz et
         for member in &contract.members {
             if let ContractMember::Method(m) = member {
-                self.analyze_method(m, &contract.name);
+                self.analyze_method(m);
             }
         }
 
         self.symbol_table.pop_scope();
     }
 
-    fn analyze_method(&mut self, method: &FnDecl, _contract_name: &str) {
+    fn analyze_method(&mut self, method: &FnDecl) {
         self.symbol_table
             .push_scope(ScopeType::Function(method.name.clone()));
 
         self.register_params(&method.params);
         self.analyze_block(&method.body);
         self.check_return(&method.name, &method.return_type, &method.body, method.span);
-        self.check_unused_in_scope();
 
         self.symbol_table.pop_scope();
     }
@@ -237,7 +224,6 @@ impl Analyzer {
                 span,
                 ..
             } => {
-                // Aynı scope'ta zaten var mı?
                 if self.symbol_table.lookup_current_scope(name).is_some() {
                     self.errors.push(SemanticError::AlreadyDeclared {
                         name: name.clone(),
@@ -249,7 +235,6 @@ impl Analyzer {
                 let declared_type = self.resolve_type(type_expr);
                 let init_type = self.infer_expr_type(initializer);
 
-                // Tip uyumu kontrolü
                 if !declared_type.is_assignable_from(&init_type) {
                     self.errors.push(SemanticError::TypeMismatch {
                         expected: declared_type.to_string(),
@@ -258,7 +243,6 @@ impl Analyzer {
                     });
                 }
 
-                // Sembolü kaydet
                 self.symbol_table.define(Symbol {
                     name: name.clone(),
                     symbol_type: declared_type,
@@ -270,7 +254,6 @@ impl Analyzer {
                     column: span.column,
                 });
 
-                // Initializer'daki değişken kullanımlarını kontrol et
                 self.check_expr(initializer);
             }
 
@@ -320,6 +303,18 @@ impl Analyzer {
                 }
             }
 
+            Stmt::While {
+                condition,
+                body,
+                ..
+            } => {
+                self.check_expr(condition);
+
+                self.symbol_table.push_scope(ScopeType::Loop);
+                self.analyze_block(body);
+                self.symbol_table.pop_scope();
+            }
+
             Stmt::Match { value, arms, .. } => {
                 self.check_expr(value);
                 for arm in arms {
@@ -334,7 +329,6 @@ impl Analyzer {
                 value,
                 span,
             } => {
-                // Hedef değişkenin mutable olup olmadığını kontrol et
                 if let Expr::Identifier { name, .. } = target {
                     if let Some(sym) = self.symbol_table.lookup(name) {
                         if !sym.mutable {
@@ -384,7 +378,6 @@ impl Analyzer {
     fn check_expr(&mut self, expr: &Expr) {
         match expr {
             Expr::Identifier { name, span } => {
-                // Değişken tanımlı mı?
                 if self.symbol_table.lookup(name).is_none()
                     && !self.is_known_builtin(name)
                 {
@@ -404,7 +397,6 @@ impl Analyzer {
                 let left_type = self.infer_expr_type(left);
                 let right_type = self.infer_expr_type(right);
 
-                // Aritmetik operatörler sadece numeric tiplerde
                 match op {
                     BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Mod => {
                         if !left_type.is_numeric() && left_type != ChronosType::Error
@@ -471,13 +463,12 @@ impl Analyzer {
                 }
             }
 
-            // Literal'ler ve path'ler — kontrol gerektirmez
             _ => {}
         }
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  Tip Çıkarımı (Type Inference)
+    //  Tip Çıkarımı
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     fn infer_expr_type(&self, expr: &Expr) -> ChronosType {
@@ -492,7 +483,7 @@ impl Analyzer {
                     Some("u16") => ChronosType::UInt16,
                     Some("u32") => ChronosType::UInt32,
                     Some("u64") => ChronosType::UInt64,
-                    None        => ChronosType::Int64, // default
+                    None        => ChronosType::Int64,
                     _           => ChronosType::Error,
                 }
             }
@@ -519,7 +510,6 @@ impl Analyzer {
             }
 
             Expr::PathExpr { segments, .. } => {
-                // ExitCode::Success gibi path'ler
                 if let Some(first) = segments.first() {
                     if self.symbol_table.contracts.contains_key(first) {
                         ChronosType::Contract(first.clone())
@@ -579,7 +569,7 @@ impl Analyzer {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  Type Resolution — AST TypeExpr → ChronosType
+    //  Type Resolution
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     fn resolve_type(&self, type_expr: &TypeExpr) -> ChronosType {
@@ -641,7 +631,7 @@ impl Analyzer {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  Yardımcı Kontroller
+    //  Return Flow Analysis
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     fn check_return(
@@ -653,15 +643,13 @@ impl Analyzer {
     ) {
         let expected = self.resolve_type(return_type);
 
-        // Void fonksiyonlarda return zorunlu değil
         if expected == ChronosType::Void {
             return;
         }
 
-        // Son statement return mı?
-        let has_return = body.iter().any(|stmt| matches!(stmt, Stmt::Return { .. }));
+        let guaranteed = self.block_guarantees_return(body);
 
-        if !has_return {
+        if !guaranteed {
             self.errors.push(SemanticError::MissingReturn {
                 name: fn_name.to_string(),
                 return_type: expected.to_string(),
@@ -670,14 +658,70 @@ impl Analyzer {
         }
     }
 
-    fn check_unused_in_scope(&mut self) {
-        // Mevcut scope'taki kullanılmayan değişkenleri uyar
-        // Not: pop_scope'tan önce çağrılmalı
+    fn block_guarantees_return(&self, block: &Block) -> bool {
+        if let Some(last_stmt) = block.last() {
+            self.statement_guarantees_return(last_stmt)
+        } else {
+            false
+        }
     }
 
+    fn statement_guarantees_return(&self, stmt: &Stmt) -> bool {
+        match stmt {
+            Stmt::Return { .. } => true,
+
+            Stmt::If {
+                then_block,
+                else_if_blocks,
+                else_block,
+                ..
+            } => {
+                if !self.block_guarantees_return(then_block) {
+                    return false;
+                }
+
+                for (_, block) in else_if_blocks {
+                    if !self.block_guarantees_return(block) {
+                        return false;
+                    }
+                }
+
+                match else_block {
+                    Some(block) => self.block_guarantees_return(block),
+                    None => false,
+                }
+            }
+
+            Stmt::Match { arms, .. } => {
+                if arms.is_empty() {
+                    return false;
+                }
+
+                let mut has_default = false;
+
+                for arm in arms {
+                    if matches!(arm.pattern, MatchPattern::Default) {
+                        has_default = true;
+                    }
+
+                    if !self.block_guarantees_return(&arm.body) {
+                        return false;
+                    }
+                }
+
+                has_default
+            }
+
+            _ => false,
+        }
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  Yardımcı Kontroller
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
     fn is_inside_loop(&self) -> bool {
-        // Scope zincirinde Loop var mı?
-        false // Şimdilik — loop implementasyonu Section 5'te
+        self.symbol_table.is_inside_loop()
     }
 
     fn is_known_builtin(&self, name: &str) -> bool {
@@ -710,10 +754,6 @@ impl Analyzer {
     }
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Analysis Result
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 pub struct AnalysisResult {
     pub symbol_table: SymbolTable,
     pub errors: Vec<SemanticError>,
@@ -741,10 +781,6 @@ impl AnalysisResult {
         self.warnings.len()
     }
 }
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Unit Tests
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 #[cfg(test)]
 mod tests {
@@ -792,10 +828,7 @@ mod tests {
             }
         "#);
         assert!(result.has_errors());
-        assert!(matches!(
-            result.errors[0],
-            SemanticError::TypeMismatch { .. }
-        ));
+        assert!(matches!(result.errors[0], SemanticError::TypeMismatch { .. }));
     }
 
     #[test]
@@ -808,10 +841,7 @@ mod tests {
             }
         "#);
         assert!(result.has_errors());
-        assert!(matches!(
-            result.errors[0],
-            SemanticError::TypeMismatch { .. }
-        ));
+        assert!(matches!(result.errors[0], SemanticError::TypeMismatch { .. }));
     }
 
     #[test]
@@ -825,10 +855,7 @@ mod tests {
             }
         "#);
         assert!(result.has_errors());
-        assert!(matches!(
-            result.errors[0],
-            SemanticError::AlreadyDeclared { .. }
-        ));
+        assert!(matches!(result.errors[0], SemanticError::AlreadyDeclared { .. }));
     }
 
     #[test]
@@ -841,10 +868,7 @@ mod tests {
             }
         "#);
         assert!(result.has_errors());
-        assert!(matches!(
-            result.errors[0],
-            SemanticError::MissingReturn { .. }
-        ));
+        assert!(matches!(result.errors[0], SemanticError::MissingReturn { .. }));
     }
 
     #[test]
@@ -931,9 +955,52 @@ mod tests {
             }
         "#);
         assert!(result.has_errors());
-        assert!(matches!(
-            result.errors[0],
-            SemanticError::TypeMismatch { .. }
-        ));
+        assert!(matches!(result.errors[0], SemanticError::TypeMismatch { .. }));
+    }
+
+    #[test]
+    fn test_if_else_guaranteed_return() {
+        let result = analyze_source(r#"
+            fn classify(n: Int32) -> Int32 {
+                if (condition: n > 0i32) => {
+                    return 1i32;
+                } else => {
+                    return 0i32;
+                };
+            }
+        "#);
+        assert!(result.is_ok(), "Errors: {:?}", result.errors);
+    }
+
+    #[test]
+    fn test_match_guaranteed_return() {
+        let result = analyze_source(r#"
+            fn test(n: Int32) -> Int32 {
+                match (value: n) => {
+                    case(1i32) => {
+                        return 11i32;
+                    },
+                    default => {
+                        return 99i32;
+                    }
+                };
+            }
+        "#);
+        assert!(result.is_ok(), "Errors: {:?}", result.errors);
+    }
+
+    #[test]
+    fn test_while_loop() {
+        let result = analyze_source(r#"
+            contract Main :: EntryPoint {
+                fn main() -> Void {
+                    let x: Int32 = 10i32
+                    while (condition: x > 0i32) => {
+                        break;
+                    };
+                }
+            }
+        "#);
+        assert!(result.is_ok(), "Errors: {:?}", result.errors);
     }
 }

@@ -1,0 +1,59 @@
+#![module::entry(main)]
+@require core::types::{ Int32, ExitCode, String };
+@require core::io::{ StreamWriter, BufferMode };
+
+fn add(a: Int32, b: Int32) -> Int32 {
+    return a + b;
+}
+
+fn mul(a: Int32, b: Int32) -> Int32 {
+    return a * b;
+}
+
+fn square(n: Int32) -> Int32 {
+    return n * n;
+}
+
+contract Main :: EntryPoint {
+
+    @static
+    fn main(args: Vector<String>) -> ExitCode {
+        let writer: StreamWriter = StreamWriter::acquire(
+            target: StdOut,
+            mode: BufferMode::LineBuffered,
+            encoding: Encoding::UTF8
+        );
+
+        // Test 1: Basic function call
+        let sum: Int32 = add(10i32, 20i32);
+        writer.emit(payload: "Test 1 - add(10, 20):");
+        writer.emit(payload: sum);
+
+        // Test 2: Function result used in another call
+        let product: Int32 = mul(sum, 3i32);
+        writer.emit(payload: "Test 2 - mul(sum, 3):");
+        writer.emit(payload: product);
+
+        // Test 3: Square
+        let sq: Int32 = square(7i32);
+        writer.emit(payload: "Test 3 - square(7):");
+        writer.emit(payload: sq);
+
+        // Test 4: Chained operations
+        let a: Int32 = add(5i32, 5i32);
+        let b: Int32 = mul(a, a);
+        writer.emit(payload: "Test 4 - mul(add(5,5), add(5,5)):");
+        writer.emit(payload: b);
+
+        // Test 5: Arithmetic with function results
+        let c: Int32 = add(100i32, 200i32);
+        let d: Int32 = add(c, 50i32);
+        writer.emit(payload: "Test 5 - add(add(100,200), 50):");
+        writer.emit(payload: d);
+
+        writer.emit(payload: "All function tests passed.");
+
+        writer.release();
+        return ExitCode::Success(0x00);
+    }
+}

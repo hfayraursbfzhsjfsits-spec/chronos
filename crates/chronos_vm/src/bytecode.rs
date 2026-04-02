@@ -203,18 +203,29 @@ pub enum OpCode {
 #[derive(Debug, Clone)]
 pub struct Chunk {
     pub name: String,
+    pub params: Vec<String>,
     pub code: Vec<OpCode>,
-    pub lines: Vec<usize>,   // Her opcode'un kaynak satır numarası
+    pub lines: Vec<usize>,
 }
 
 impl Chunk {
     pub fn new(name: String) -> Self {
         Self {
             name,
+            params: Vec::new(),
             code: Vec::new(),
             lines: Vec::new(),
         }
     }
+    
+    pub fn with_params(name: String, params: Vec<String>) -> Self {
+    Self {
+        name,
+        params,
+        code: Vec::new(),
+        lines: Vec::new(),
+    }
+} 
 
     pub fn emit(&mut self, op: OpCode, line: usize) -> usize {
         let idx = self.code.len();
@@ -237,7 +248,11 @@ impl Chunk {
     }
 
     pub fn disassemble(&self) -> String {
-        let mut output = format!("═══ Chunk: {} ═══\n", self.name);
+        let mut output = format!(
+    "═══ Chunk: {} | params: ({}) ═══\n",
+    self.name,
+    self.params.join(", ")
+);
         for (i, op) in self.code.iter().enumerate() {
             let line = self.lines.get(i).unwrap_or(&0);
             output.push_str(&format!("  {:04}  L{:<4}  {:?}\n", i, line, op));

@@ -208,6 +208,12 @@ pub enum Stmt {
         span: Span,
     },
 
+     While {
+     condition: Expr,
+     body: Block,
+     span: Span,
+ },
+
     /// match (value: x) => { case(...) => { }, ... };
     Match {
         value: Expr,

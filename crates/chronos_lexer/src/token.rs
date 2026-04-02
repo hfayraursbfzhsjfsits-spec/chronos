@@ -97,6 +97,7 @@ pub enum TokenKind {
     Mut,
     Return,
     If,
+    While,
     Else,
     Match,
     Case,
@@ -182,7 +183,7 @@ impl TokenKind {
         matches!(self,
             TokenKind::Contract | TokenKind::Fn | TokenKind::Let |
             TokenKind::Mut | TokenKind::Return | TokenKind::If |
-            TokenKind::Else | TokenKind::Match | TokenKind::Case |
+            TokenKind::While | TokenKind::Else | TokenKind::Match | TokenKind::Case |
             TokenKind::Default | TokenKind::Guard | TokenKind::Field |
             TokenKind::Throw | TokenKind::Propagate | TokenKind::Break |
             TokenKind::Continue | TokenKind::Enumeration | TokenKind::Variant |
@@ -220,6 +221,7 @@ pub fn lookup_keyword(ident: &str) -> Option<TokenKind> {
         "mut"         => Some(TokenKind::Mut),
         "return"      => Some(TokenKind::Return),
         "if"          => Some(TokenKind::If),
+        "while"       => Some(TokenKind::While),
         "else"        => Some(TokenKind::Else),
         "match"       => Some(TokenKind::Match),
         "case"        => Some(TokenKind::Case),

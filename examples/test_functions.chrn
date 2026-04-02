@@ -1,0 +1,31 @@
+#![module::entry(main)]
+@require core::types::{ Int32, ExitCode, String };
+@require core::io::{ StreamWriter, BufferMode };
+
+fn add(a: Int32, b: Int32) -> Int32 {
+    return a + b;
+}
+
+fn mul(a: Int32, b: Int32) -> Int32 {
+    return a * b;
+}
+
+contract Main :: EntryPoint {
+
+    @static
+    fn main(args: Vector<String>) -> ExitCode {
+        let writer: StreamWriter = StreamWriter::acquire(
+            target: StdOut,
+            mode: BufferMode::LineBuffered,
+            encoding: Encoding::UTF8
+        );
+
+        let x: Int32 = add(10i32, 20i32);
+        let y: Int32 = mul(x, 2i32);
+
+        writer.emit(payload: "Function system test complete.");
+
+        writer.release();
+        return ExitCode::Success(0x00);
+    }
+}

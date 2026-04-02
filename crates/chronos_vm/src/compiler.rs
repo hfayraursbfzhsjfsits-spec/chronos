@@ -41,12 +41,8 @@ impl Compiler {
         for member in &contract.members {
             if let ContractMember::Method(method) = member {
                 let qualified_name = format!("{}::{}", contract.name, method.name);
-                let mut chunk = Chunk::new(qualified_name);
-
-                // Parametreleri store et — ters sıra
-                for param in method.params.iter().rev() {
-                    chunk.emit(OpCode::Store(param.name.clone()), method.span.line);
-                }
+let params = method.params.iter().map(|p| p.name.clone()).collect();
+let mut chunk = Chunk::with_params(qualified_name, params);
 
                 self.compile_block(&method.body, &mut chunk);
 
@@ -61,13 +57,10 @@ impl Compiler {
     }
 
     fn compile_function(&self, func: &FnDecl) -> Chunk {
-        let mut chunk = Chunk::new(func.name.clone());
+    let params = func.params.iter().map(|p| p.name.clone()).collect();
+    let mut chunk = Chunk::with_params(func.name.clone(), params);
 
-        for param in func.params.iter().rev() {
-            chunk.emit(OpCode::Store(param.name.clone()), func.span.line);
-        }
-
-        self.compile_block(&func.body, &mut chunk);
+    self.compile_block(&func.body, &mut chunk);
 
         if !matches!(chunk.code.last(), Some(OpCode::Return)) {
             chunk.emit(OpCode::PushConst(Value::Void), func.span.line);
@@ -153,6 +146,24 @@ impl Compiler {
                     chunk.patch_jump(j, end_pos);
                 }
             }
+            
+            Stmt::While {
+    condition,
+    body,
+    span,
+} => {
+    let loop_start = chunk.len();
+
+    self.compile_expr(condition, chunk);
+    let exit_jump = chunk.emit(OpCode::JumpIfFalse(0), span.line);
+
+    self.compile_block(body, chunk);
+
+    chunk.emit(OpCode::Jump(loop_start), span.line);
+
+    let loop_end = chunk.len();
+    chunk.patch_jump(exit_jump, loop_end);
+}
 
             Stmt::Match { value, arms, span } => {
                 self.compile_expr(value, chunk);
